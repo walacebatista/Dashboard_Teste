@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard de Chamados de TI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#ffffff;--card:#f6f8fa;--bd:#d0d7de;--tx:#1f2328;--mu:#656d76;--ac:#0969da;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--card:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#58a6ff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1117;--card:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#58a6ff;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;padding:20px;max-width:1000px;margin-inline:auto}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--mu);font-size:13px;margin-bottom:16px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+label{font-size:12px;color:var(--mu);display:flex;flex-direction:column;gap:4px}
+select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px}
+.kpi b{display:block;font-size:26px;margin-top:4px;color:var(--ac)}
+.kpi span{font-size:12px;color:var(--mu)}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.box{position:relative;height:280px}
+h2{font-size:14px;margin:0 0 10px}
+</style>
+</head>
+<body>
+<h1>📊 Dashboard de Chamados de TI</h1>
+<div class="sub">Dados fictícios para demonstração. Use os filtros para interagir.</div>
+<div class="filters">
+<label>Categoria<select id="cat"></select></label>
+<label>Período<select id="per"><option value="6">Últimos 6 meses</option><option value="3">Últimos 3 meses</option></select></label>
+</div>
+<div class="kpis">
+<div class="card kpi"><span>Chamados</span><b id="k1"></b></div>
+<div class="card kpi"><span>SLA cumprido</span><b id="k2"></b></div>
+<div class="card kpi"><span>Tempo médio (h)</span><b id="k3"></b></div>
+<div class="card kpi"><span>Resolvidos no N1</span><b id="k4"></b></div>
+</div>
+<div class="grid">
+<div class="card"><h2>Chamados por mês</h2><div class="box"><canvas id="c1"></canvas></div></div>
+<div class="card"><h2>Por categoria</h2><div class="box"><canvas id="c2"></canvas></div></div>
+</div>
+<script>
+const meses=["Abr","Mai","Jun","Jul","Ago","Set"];
+const cats=["Rede","Hardware","Software","Acesso","Segurança"];
+const base=[[34,38,30,41,36,33],[22,19,25,21,18,20],[58,62,55,66,61,57],[40,37,44,39,42,38],[9,12,10,14,11,13]];
+const sla=[94,91,96,93,95,97],tmp=[3.2,4.1,2.8,3.6,3.0,2.7],n1=[68,72,64,70,66,74];
+const cor=["#58a6ff","#3fb950","#d29922","#f85149","#a371f7"];
+const $=id=>document.getElementById(id);
+$("cat").innerHTML='<option value="-1">Todas</option>'+cats.map((c,i)=>`<option value="${i}">${c}</option>`).join("");
+const txt=()=>getComputedStyle(document.documentElement).getPropertyValue("--mu").trim();
+Chart.defaults.font.family="-apple-system,Segoe UI,sans-serif";
+const c1=new Chart($("c1"),{type:"line",data:{labels:[],datasets:[{label:"Chamados",data:[],borderColor:cor[0],backgroundColor:"rgba(88,166,255,.15)",fill:true,tension:.3}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+const c2=new Chart($("c2"),{type:"doughnut",data:{labels:cats,datasets:[{data:[],backgroundColor:cor,borderWidth:0}]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}}});
+function render(){
+  const k=+$("cat").value,p=+$("per").value,s=6-p;
+  const idx=[...Array(p).keys()].map(i=>i+s);
+  const serie=idx.map(i=>k<0?base.reduce((a,r)=>a+r[i],0):base[k][i]);
+  const tot=serie.reduce((a,b)=>a+b,0);
+  const avg=a=>(idx.reduce((x,i)=>x+a[i],0)/p);
+  $("k1").textContent=tot;
+  $("k2").textContent=avg(sla).toFixed(1)+"%";
+  $("k3").textContent=avg(tmp).toFixed(1);
+  $("k4").textContent=avg(n1).toFixed(0)+"%";
+  c1.data.labels=idx.map(i=>meses[i]);c1.data.datasets[0].data=serie;c1.update();
+  c2.data.datasets[0].data=base.map(r=>idx.reduce((a,i)=>a+r[i],0));c2.update();
+}
+$("cat").onchange=$("per").onchange=render;
+render();
+</script>
+</body>
+</html>
